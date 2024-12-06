@@ -1,0 +1,226 @@
+O que foi feito:
+
+- criação das tabelas TipoCrime, Cidade, Crime, CVLI, LogAlteracoes
+- criação do delete cascade na CVLI, ou seja, ao excluir um Crime, exclui, se existe, a entrada do mesmo crime da tabela CVLI
+- criado procedure que insere um crime na CVLI, caso seja um crime do tipo CVLI, call do procedure eh:
+		CALL InsertCrimeCVLI(1, 2, 12, 2024, 3);
+		na ordem: 		1: IdTipoCrime (exemplo: o tipo de crime registrado).
+									2: IdCidade (exemplo: a cidade onde o crime ocorreu).
+									12: Mês do crime.
+									2024: Ano do crime.
+									3: Número total de vítimas
+
+O que fazer:
+
+- criar trigger para log de exclusões
+- criar trigger para log de inclusões
+- criar trigger para log de alterações
+- criar trigger que exclua os crimes com TipoCrime que foi excluído
+^	esses logs tem que ser depois que estiver tudo pronto ^
+
+
+---------------------------------------------------------------------------
+No software, pode mexer nas tabelas:
+
+1) Crime: criar, alterar ou excluir
+	- criar não implica nada especial
+	- alterar permite alterar a cidade, o mês, o ano.
+	- excluir vai gerar a exclusão cascade na CVLI, tudo certo.
+	
+2) TipoCrime: criar, alterar, excluir
+	- criar não implica nada especial
+	- alterar permite alterar o nome do tipo de crime, não implicando nada especial
+	- excluir um tipo de crime deve fazer com que todas as ocorrências desse tipo sejam excluídas da tabela Crime, que vai ocasionar a exclusão da tabela CVLI por cascade
+	
+3) Cidade: criar, alterar, excluir
+	- criar não implica nada especial
+	- alterar não implica nada especial
+	- excluir implica a exclusão de todos os Crimes que aconteceram nessa cidade, que vai ocasionar a exclusão da tabela CVLI por cascade
+	
+	
+--------------------------------------------------------------------------
+criação da tabela de logs do crime
+
+CREATE TABLE LogAlteracoesCrime (
+    IdLog INT AUTO_INCREMENT PRIMARY KEY,
+    IdRegistro INT,
+    TipoOperacao VARCHAR(10), -- INSERT, UPDATE, DELETE
+    DescricaoAlteracao TEXT,
+    DataHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--------------------------------------------------------------------------
+criação do trigger de insert no log para Crime
+DELIMITER //
+
+CREATE TRIGGER log_crime_insert
+AFTER INSERT ON Crime
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (NEW.IdCrime, 'INSERT', CONCAT('Novo registro adicionado: ', CAST(NEW.IdCrime AS CHAR)));
+END;
+//
+
+DELIMITER ;
+------------------------------------------------------------------------------
+criação do trigger de update no log para Crime
+DELIMITER //
+
+CREATE TRIGGER log_crime_update
+AFTER UPDATE ON Crime
+FOR EACH ROW
+BEGIN
+    -- Verificar mudanças no campo 'Mes'
+    IF OLD.Mes != NEW.Mes THEN
+        INSERT INTO LogAlteracoesCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+        VALUES (NEW.IdCrime, 'UPDATE', 
+                CONCAT('Mes alterado: ', CAST(OLD.Mes AS CHAR), ' para ', CAST(NEW.Mes AS CHAR)));
+    END IF;
+
+    -- Verificar mudanças no campo 'Ano'
+    IF OLD.Ano != NEW.Ano THEN
+        INSERT INTO LogAlteracoesCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+        VALUES (NEW.IdCrime, 'UPDATE', 
+                CONCAT('Ano alterado: ', CAST(OLD.Ano AS CHAR), ' para ', CAST(NEW.Ano AS CHAR)));
+    END IF;
+    
+    -- Verificar mudanças no campo 'Cidade'
+    IF OLD.IdCidade != NEW.IdCidade THEN
+        INSERT INTO LogAlteracoesCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+        VALUES (NEW.IdCrime, 'UPDATE', 
+                CONCAT('Cidade alterada: ', CAST(OLD.IdCidade AS CHAR), ' para ', CAST(NEW.IdCidade AS CHAR)));
+    END IF;
+END;
+//
+
+DELIMITER ;
+---------------------------------------------------------------------------------
+criação do trigger de delete no log para Crime
+DELIMITER //
+
+CREATE TRIGGER log_crime_delete
+AFTER DELETE ON Crime
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (OLD.IdCrime, 'DELETE', CONCAT('Registro excluído: ID ', CAST(OLD.IdCrime AS CHAR)));
+END;
+//
+
+DELIMITER ;
+-------------------------------------------------------------------------------
+criação da tabela de logs da cidade
+
+CREATE TABLE LogAlteracoesCidade (
+    IdLog INT AUTO_INCREMENT PRIMARY KEY,
+    IdRegistro INT,
+    TipoOperacao VARCHAR(10), -- INSERT, UPDATE, DELETE
+    DescricaoAlteracao TEXT,
+    DataHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+------------------------------------------------------------------------------
+DELIMITER //
+
+CREATE TRIGGER log_cidade_delete
+AFTER DELETE ON Cidade
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesCidade (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (OLD.IdCidade, 'DELETE', CONCAT('Cidade excluida: ID ', CAST(OLD.IdCidade AS CHAR)));
+END;
+//
+
+DELIMITER ;
+----------------------------------------------------------------------------
+criação do trigger de update no log para Cidade
+DELIMITER //
+
+CREATE TRIGGER log_cidade_update
+AFTER UPDATE ON Cidade
+FOR EACH ROW
+BEGIN
+    -- Verificar mudanças no campo 'Mes'
+    IF OLD.Nome != NEW.Nome THEN
+        INSERT INTO LogAlteracoesCidade (IdRegistro, TipoOperacao, DescricaoAlteracao)
+        VALUES (NEW.IdCidade, 'UPDATE', 
+                CONCAT('Nome alterado: ', OLD.Nome, ' para ', NEW.Nome));
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+-------------------------------------------------------------------------
+criação do trigger de insert no log para Cidade
+DELIMITER //
+
+CREATE TRIGGER log_cidade_insert
+AFTER INSERT ON Cidade
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesCidade (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (NEW.IdCidade, 'INSERT', CONCAT('Nova cidade adicionada: ', NEW.Nome));
+END;
+//
+
+DELIMITER ;
+
+
+
+
+-> falta os logs do TipoCrime
+CREATE TABLE LogAlteracoesTipoCrime (
+    IdLog INT AUTO_INCREMENT PRIMARY KEY,
+    IdRegistro INT,
+    TipoOperacao VARCHAR(10), -- INSERT, UPDATE, DELETE
+    DescricaoAlteracao TEXT,
+    DataHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+------------------------------------------------------------------------
+criacao do trigger de delete no log para TipoCrime
+DELIMITER //
+
+CREATE TRIGGER log_tipocrime_delete
+AFTER DELETE ON TipoCrime
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesTipoCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (OLD.IdTipoCrime, 'DELETE', CONCAT('Tipo de crime excluido: ID ', CAST(OLD.IdTipoCrime AS CHAR)));
+END;
+//
+
+DELIMITER ;
+-------------------------------------------------------------------
+criacao do trigger de update no log para TipoCrime
+DELIMITER //
+
+CREATE TRIGGER log_tipocrime_update
+AFTER UPDATE ON TipoCrime
+FOR EACH ROW
+BEGIN
+    -- Verificar mudanças no campo 'Mes'
+    IF OLD.Nome != NEW.Nome THEN
+        INSERT INTO LogAlteracoesTipoCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+        VALUES (NEW.IdTipoCrime, 'UPDATE', 
+                CONCAT('Nome alterado: ', OLD.Nome, ' para ', NEW.Nome));
+    END IF;
+END;
+//
+
+DELIMITER ;
+-------------------------------------------------------------------------
+criação do trigger de insert no log para TipoCrime
+DELIMITER //
+
+CREATE TRIGGER log_tipocrime_insert
+AFTER INSERT ON TipoCrime
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogAlteracoesTipoCrime (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (NEW.IdTipoCrime, 'INSERT', CONCAT('Novo tipo de crime adicionado: ', NEW.Nome));
+END;
+//
+
+DELIMITER ;

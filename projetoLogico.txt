@@ -1,0 +1,126 @@
+TipoCrime(*IdTipoCrime*, Nome, CVLI)                    integer, varchar, bool
+Cidade(*IdCidade*, Nome)                                integer, varchar
+Crime(*IdCrime*, IdTipoCrime, IdCidade, Mes, Ano)       integer, integer, integer, date, date
+    IdTipoCrime references TipoCrime
+    IdCidade references Cidade
+CVLI(*IdCVLI*, *IdCrime*, TotalVitimas)                 integer, integer, integer
+    IdCrime references Crime
+    
+LogAlteracoes(*IdLog*, IdCrime, Alteracao, Data)	integer, integer, varchar, timestamp default current_timestamp
+
+teria que cadastrar todas as cidades, e todas as categorias de crime
+alimentar o banco de dados com algumas ocorrencias
+
+---------------------------------------------------------
+CREATE TABLE TipoCrime (
+	IdTipoCrime INT AUTO_INCREMENT PRIMARY KEY,
+	Nome VARCHAR(50) NOT NULL,
+	CVLI BOOLEAN NOT NULL
+);
+
+CREATE TABLE Cidade (
+	IdCidade INT AUTO_INCREMENT PRIMARY KEY,
+	Nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Crime (
+	IdCrime INT AUTO_INCREMENT PRIMARY KEY,
+	IdTipoCrime INT NOT NULL,
+	FOREIGN KEY (IdTipoCrime) REFERENCES TipoCrime(IdTipoCrime),
+	IdCidade INT NOT NULL,
+	FOREIGN KEY (IdCidade) REFERENCES Cidade(IdCidade),
+	Mes INT NOT NULL,
+	Ano INT NOT NULL
+);
+
+CREATE TABLE CVLI (
+	IdCVLI INT AUTO_INCREMENT PRIMARY KEY,
+	IdCrime INT NOT NULL,
+	FOREIGN KEY (IdCrime) REFERENCES Crime(IdCrime),
+	TotalVitimas INT NOT NULL
+);
+
+CREATE TABLE LogAlteracoes (
+	IdLogAlteracoes INT AUTO_INCREMENT PRIMARY KEY,
+	IdCrime INT NOT NULL,
+	DescricaoAlteracao VARCHAR (255) NOT NULL,
+	DataAlteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+------------------ depois -------------------------
+DELIMITER //
+
+CREATE TRIGGER log_crime_update
+AFTER UPDATE ON Crime
+FOR EACH ROW
+BEGIN
+    -- Verificar mudanças no nome
+    IF OLD.Mes != NEW.Mes THEN
+        INSERT INTO LogAlteracoes (IdCrime, DescricaoAlteracao)
+        VALUES (NEW.id, CONCAT('Mes alterado: ', CAST(OLD.Mes AS CHAR), ' para ', CAST(NEW.Mes AS CHAR)));
+    END IF;
+
+    -- Verificar mudanças no email
+    IF OLD.Ano != NEW.Ano THEN
+        INSERT INTO LogAlteracoes (IdCrime, DescricaoAlteracao)
+        VALUES (NEW.id, CONCAT('Ano alterado: ', CAST(OLD.Ano AS CHAR), ' para ', CAST(NEW.Ano AS CHAR)));
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+---------- consultar triggers ----------------
+SELECT TRIGGER_NAME, EVENT_MANIPULATION, EVENT_OBJECT_TABLE
+FROM information_schema.triggers
+WHERE TRIGGER_SCHEMA = 'trabalho_fbd';
+
+
+
+------------- resolvendo problema de fk na cvli, ao deletar crime --------------
+ALTER TABLE CVLI
+DROP FOREIGN KEY CVLI_ibfk_1,
+ADD CONSTRAINT CVLI_ibfk_1 FOREIGN KEY (IdCrime) REFERENCES Crime(IdCrime) ON DELETE CASCADE;
+
+DROP TRIGGER IF EXISTS remove_crime_cvli;
+
+
+
+
+DELIMITER $$
+
+CREATE PROCEDURE InsertCrimeCVLI (
+    IN TipoCrimeId INT,
+    IN CidadeId INT,
+    IN MesCrime INT,
+    IN AnoCrime INT,
+    IN TotalVitimas INT
+)
+BEGIN
+    DECLARE NewCrimeId INT;
+
+    -- Inserir o novo crime na tabela Crime
+    INSERT INTO Crime (IdTipoCrime, IdCidade, Mes, Ano)
+    VALUES (TipoCrimeId, CidadeId, MesCrime, AnoCrime);
+
+    -- Pegar o IdCrime recém-gerado
+    SET NewCrimeId = LAST_INSERT_ID();
+
+    -- Verificar se o tipo de crime é CVLI
+    IF (SELECT CVLI FROM TipoCrime WHERE IdTipoCrime = TipoCrimeId) THEN
+        -- Inserir o IdCrime e TotalVitimas na tabela CVLI
+        INSERT INTO CVLI (IdCrime, TotalVitimas)
+        VALUES (NewCrimeId, TotalVitimas);
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+-------------- consultar procedures --------------
+SELECT ROUTINE_NAME, ROUTINE_TYPE, CREATED, LAST_ALTERED
+FROM information_schema.ROUTINES
+WHERE ROUTINE_SCHEMA = 'trabalho_fbd' AND ROUTINE_TYPE = 'PROCEDURE';
+
