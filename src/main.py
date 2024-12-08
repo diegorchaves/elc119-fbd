@@ -1,47 +1,148 @@
 import mariadb
+from Crimes import listar_dados, criar_crime, alterar_crime, excluir_crime, criar_tipo_crime, alterar_tipo_crime, excluir_tipo_crime, criar_cidade, alterar_cidade, excluir_cidade
 
 def conectar_banco():
     try:
-        conexao = mariadb.connect (
+        conexao = mariadb.connect(
             host='localhost',
             user='root',
-            password='123456',
-            database='trabalho_fbd',
+            password='lucas',  # 123456
+            database='crimes',  # trabalho_fdb
+            port=3306
         )
         print("Conexão estabelecida com sucesso!")
         return conexao
-    
     except mariadb.Error as e:
         print(f"Erro ao conectar ao MariaDB: {e}")
         return None
 
-def imprime_opcoes():
-    print('Seja bem-vindo, seleciona uma das opcoes: ')
-    print('1 - Consultar tabelas')
-    print('2 - Alterar registros')
-    print('3 - Excluir registros')
-    print('4 - Inserir registros')
-    print('5 - Sair')
+def pausar():
+    input("\nPressione Enter para continuar...")
 
-    opcao_selecionada = input()
+def consultar_tabelas(cursor):
+    print("\n--- Consultar Tabelas ---")
+    print("1. Listar Crimes")
+    print("2. Listar Tipos de Crimes")
+    print("3. Listar Cidades")
+    opcao = input("Escolha uma opção: ")
 
-    match opcao_selecionada:
-        case 1:
-            consultar_tabelas()
-        case 2:
-            alterar_registros()
-        case 3:
-            excluir_registros()
-        case 4:
-            inserir_registros()
-        case 5:
-            print('Saindo...')
+    if opcao == "1":
+        listar_dados(cursor, "Crime")
+    elif opcao == "2":
+        listar_dados(cursor, "TipoCrime")
+    elif opcao == "3":
+        listar_dados(cursor, "Cidade")
+    else:
+        print("Opção inválida. Tente novamente.")
+
+def consultar_logs(cursor):
+    print("\n--- Consultar Logs ---")
+    print("1. Logs de Crimes")
+    print("2. Logs de Tipos de Crimes")
+    print("3. Logs de Cidades")
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == "1":
+        listar_logs(cursor, "LogAlteracoesCrime")
+    elif opcao == "2":
+        listar_logs(cursor, "LogAlteracoesTipoCrime")
+    elif opcao == "3":
+        listar_logs(cursor, "LogAlteracoesCidade")
+    else:
+        print("Opção inválida. Tente novamente.")
+
+def listar_logs(cursor, tabela):
+    query = f"SELECT IdLog, IdRegistro, TipoOperacao, DescricaoAlteracao, DataHora FROM {tabela}"
+    cursor.execute(query)
+    resultados = cursor.fetchall()
+    print(f"\n--- Logs da Tabela {tabela} ---")
+    print(f"{'ID Log':<10} {'ID Registro':<12} {'Operação':<10} {'Descrição':<50} {'Data/Hora':<20}")
+    print("-" * 100)
+    for linha in resultados:
+        print(f"{linha[0]:<10} {linha[1]:<12} {linha[2]:<10} {linha[3]:<50} {linha[4]}")
+    pausar()
+
+def alterar_registros(cursor, conexao):
+    print("\n--- Alterar Registros ---")
+    print("1. Alterar Crime")
+    print("2. Alterar Tipo de Crime")
+    print("3. Alterar Cidade")
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == "1":
+        alterar_crime(cursor, conexao)
+    elif opcao == "2":
+        alterar_tipo_crime(cursor, conexao)
+    elif opcao == "3":
+        alterar_cidade(cursor, conexao)
+    else:
+        print("Opção inválida. Tente novamente.")
+
+def excluir_registros(cursor, conexao):
+    print("\n--- Excluir Registros ---")
+    print("1. Excluir Crime")
+    print("2. Excluir Tipo de Crime")
+    print("3. Excluir Cidade")
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == "1":
+        excluir_crime(cursor, conexao)
+    elif opcao == "2":
+        excluir_tipo_crime(cursor, conexao)
+    elif opcao == "3":
+        excluir_cidade(cursor, conexao)
+    else:
+        print("Opção inválida. Tente novamente.")
+
+def inserir_registros(cursor, conexao):
+    print("\n--- Inserir Registros ---")
+    print("1. Inserir Crime")
+    print("2. Inserir Tipo de Crime")
+    print("3. Inserir Cidade")
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == "1":
+        criar_crime(cursor, conexao)
+    elif opcao == "2":
+        criar_tipo_crime(cursor, conexao)
+    elif opcao == "3":
+        criar_cidade(cursor, conexao)
+    else:
+        print("Opção inválida. Tente novamente.")
+
+def imprime_opcoes(cursor, conexao):
+    while True:
+        print('Seja bem-vindo, selecione uma das opções: ')
+        print('1 - Consultar tabelas')
+        print('2 - Alterar registros')
+        print('3 - Excluir registros')
+        print('4 - Inserir registros')
+        print('5 - Consultar logs')
+        print('6 - Sair')
+
+        opcao_selecionada = input()
+
+        match opcao_selecionada:
+            case "1":
+                consultar_tabelas(cursor)
+            case "2":
+                alterar_registros(cursor, conexao)
+            case "3":
+                excluir_registros(cursor, conexao)
+            case "4":
+                inserir_registros(cursor, conexao)
+            case "5":
+                consultar_logs(cursor)
+            case "6":
+                print('Saindo...')
+                break
+            case _:
+                print("Opção inválida. Tente novamente.")
 
 if __name__ == "__main__":
     conexao = conectar_banco()
     if conexao:
-        imprime_opcoes()
-
-        conexao.close()  # Não esqueça de fechar a conexão
-
-
+        cursor = conexao.cursor()
+        imprime_opcoes(cursor, conexao)
+        cursor.close()
+        conexao.close()

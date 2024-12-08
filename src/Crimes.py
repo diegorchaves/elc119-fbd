@@ -8,8 +8,8 @@ def conectar():
         conexao = mariadb.connect(
             host='localhost',
             user='root',
-            password='123456',
-            database='trabalho_fbd',
+            password='lucas', #123456
+            database='crimes',  #trabalho_fdb
             port=3306  # Porta padrão do MariaDB, ajuste se necessário
         )
         print("Conexão com o banco de dados realizada com sucesso!")
@@ -72,6 +72,14 @@ def listar_dados(cursor, tabela):
     pausar()
 
 
+def log_alteracao(cursor, tabela, id_registro, tipo_operacao, descricao):
+    query = f"""
+    INSERT INTO LogAlteracoes{tabela} (IdRegistro, TipoOperacao, DescricaoAlteracao)
+    VALUES (?, ?, ?)
+    """
+    cursor.execute(query, (id_registro, tipo_operacao, descricao))
+
+
 def criar_crime(cursor, conexao):
     cursor.execute("SELECT IdTipoCrime, Nome, CVLI FROM TipoCrime")
     tipos_crime = cursor.fetchall()
@@ -97,6 +105,8 @@ def criar_crime(cursor, conexao):
         cursor.callproc('InsertCrimeCVLI', [id_tipo_crime, id_cidade, mes, ano, nro_vitimas])
         conexao.commit()
         print("Crime adicionado com sucesso!")
+        log_alteracao(cursor, "Crime", cursor.lastrowid, "INSERT", f"Crime criado com ID {cursor.lastrowid}")
+        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao chamar o procedimento: {e}")
     
@@ -124,6 +134,8 @@ def alterar_crime(cursor, conexao):
         cursor.execute(query, (nova_cidade, novo_mes, novo_ano, id_crime))
         conexao.commit()
         print("Crime alterado com sucesso!")
+        log_alteracao(cursor, "Crime", id_crime, "UPDATE", f"Crime com ID {id_crime} alterado")
+        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar o crime: {e}")
     pausar()
@@ -135,6 +147,8 @@ def excluir_crime(cursor, conexao):
         cursor.execute(query, (id_crime))
         conexao.commit()
         print("Crime excluído com sucesso!")
+        log_alteracao(cursor, "Crime", id_crime, "DELETE", f"Crime com ID {id_crime} excluído")
+        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao excluir o crime: {e}")
     pausar()
@@ -143,9 +157,14 @@ def criar_tipo_crime(cursor, conexao):
     nome_tipo_crime = input("Digite o nome do tipo de crime: ")
     cvli = int(input("É um crime CVLI? (1 para Sim, 0 para Não): "))
     query = "INSERT INTO TipoCrime (Nome, CVLI) VALUES (?, ?)"
-    cursor.execute(query, (nome_tipo_crime, cvli))
-    conexao.commit()
-    print("Tipo de crime adicionado com sucesso!")
+    try:
+        cursor.execute(query, (nome_tipo_crime, cvli))
+        conexao.commit()
+        print("Tipo de crime adicionado com sucesso!")
+        log_alteracao(cursor, "TipoCrime", cursor.lastrowid, "INSERT", f"Tipo de crime criado com ID {cursor.lastrowid}")
+        conexao.commit()
+    except mariadb.Error as e:
+        print(f"Erro ao adicionar o tipo de crime: {e}")
     pausar()
 
 def alterar_tipo_crime(cursor, conexao):
@@ -159,25 +178,37 @@ def alterar_tipo_crime(cursor, conexao):
     try:
         cursor.execute(query, (novo_nome, id_tipo_crime))
         conexao.commit()
+        print("Tipo de crime alterado com sucesso!")
+        log_alteracao(cursor, "TipoCrime", id_tipo_crime, "UPDATE", f"Tipo de crime com ID {id_tipo_crime} alterado")
+        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar o tipo de crime: {e}")
-    print("Tipo de crime alterado com sucesso!")
     pausar()
 
 def excluir_tipo_crime(cursor, conexao):
     id_tipo_crime = int(input("Digite o ID do tipo de crime a ser excluído: "))
     query = "DELETE FROM TipoCrime WHERE IdTipoCrime = ?"
-    cursor.execute(query, (id_tipo_crime,))
-    conexao.commit()
-    print("Tipo de crime excluído com sucesso!")
+    try:
+        cursor.execute(query, (id_tipo_crime,))
+        conexao.commit()
+        print("Tipo de crime excluído com sucesso!")
+        log_alteracao(cursor, "TipoCrime", id_tipo_crime, "DELETE", f"Tipo de crime com ID {id_tipo_crime} excluído")
+        conexao.commit()
+    except mariadb.Error as e:
+        print(f"Erro ao excluir o tipo de crime: {e}")
     pausar()
 
 def criar_cidade(cursor, conexao):
     nome_cidade = input("Digite o nome da cidade: ")
     query = "INSERT INTO Cidade (Nome) VALUES (?)"
-    cursor.execute(query, (nome_cidade,))
-    conexao.commit()
-    print("Cidade adicionada com sucesso!")
+    try:
+        cursor.execute(query, (nome_cidade,))
+        conexao.commit()
+        print("Cidade adicionada com sucesso!")
+        log_alteracao(cursor, "Cidade", cursor.lastrowid, "INSERT", f"Cidade criada com ID {cursor.lastrowid}")
+        conexao.commit()
+    except mariadb.Error as e:
+        print(f"Erro ao adicionar a cidade: {e}")
     pausar()
 
 def alterar_cidade(cursor, conexao):
@@ -193,6 +224,8 @@ def alterar_cidade(cursor, conexao):
         cursor.execute(query, (novo_nome, id_cidade))
         conexao.commit()
         print("Cidade alterada com sucesso!")
+        log_alteracao(cursor, "Cidade", id_cidade, "UPDATE", f"Cidade com ID {id_cidade} alterada")
+        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar a cidade: {e}")
     pausar()
@@ -200,99 +233,13 @@ def alterar_cidade(cursor, conexao):
 def excluir_cidade(cursor, conexao):
     id_cidade = int(input("Digite o ID da cidade a ser excluída: "))
     query = "DELETE FROM Cidade WHERE IdCidade = ?"
-    cursor.execute(query, (id_cidade,))
-    conexao.commit()
-    print("Cidade excluída com sucesso!")
+    try:
+        cursor.execute(query, (id_cidade,))
+        conexao.commit()
+        print("Cidade excluída com sucesso!")
+        log_alteracao(cursor, "Cidade", id_cidade, "DELETE", f"Cidade com ID {id_cidade} excluída")
+        conexao.commit()
+    except mariadb.Error as e:
+        print(f"Erro ao excluir a cidade: {e}")
     pausar()
 
-def menu():
-    conexao = conectar()
-    if not conexao:
-        return
-    cursor = conexao.cursor()
-
-    while True:
-        print("\n--- MENU ---")
-        print("1. Gerenciar Crimes")
-        print("2. Gerenciar Tipos de Crimes")
-        print("3. Gerenciar Cidades")
-        print("4. Sair")
-        escolha = input("Escolha uma opção: ")
-
-        if escolha == "1":
-            while True:
-                print("\n--- Gerenciar Crimes ---")
-                print("1. Listar Crimes")
-                print("2. Criar Crime")
-                print("3. Alterar Crime")
-                print("4. Excluir Crime")
-                print("5. Voltar")
-                opcao = input("Escolha uma opção: ")
-
-                if opcao == "1":
-                    listar_dados(cursor, "Crime")
-                elif opcao == "2":
-                    criar_crime(cursor, conexao)
-                elif opcao == "3":
-                    alterar_crime(cursor, conexao)
-                elif opcao == "4":
-                    excluir_crime(cursor, conexao)
-                elif opcao == "5":
-                    break
-                else:
-                    print("Opção inválida. Tente novamente.")
-        elif escolha == "2":
-            while True:
-                print("\n--- Gerenciar Tipos de Crimes ---")
-                print("1. Listar Tipos de Crimes")
-                print("2. Criar Tipo de Crime")
-                print("3. Alterar Tipo de Crime")
-                print("4. Excluir Tipo de Crime")
-                print("5. Voltar")
-                opcao = input("Escolha uma opção: ")
-
-                if opcao == "1":
-                    listar_dados(cursor, "TipoCrime")
-                elif opcao == "2":
-                    criar_tipo_crime(cursor, conexao)
-                elif opcao == "3":
-                    alterar_tipo_crime(cursor, conexao)
-                elif opcao == "4":
-                    excluir_tipo_crime(cursor, conexao)
-                elif opcao == "5":
-                    break
-                else:
-                    print("Opção inválida. Tente novamente.")
-        elif escolha == "3":
-            while True:
-                print("\n--- Gerenciar Cidades ---")
-                print("1. Listar Cidades")
-                print("2. Criar Cidade")
-                print("3. Alterar Cidade")
-                print("4. Excluir Cidade")
-                print("5. Voltar")
-                opcao = input("Escolha uma opção: ")
-
-                if opcao == "1":
-                    listar_dados(cursor, "Cidade")
-                elif opcao == "2":
-                    criar_cidade(cursor, conexao)
-                elif opcao == "3":
-                    alterar_cidade(cursor, conexao)
-                elif opcao == "4":
-                    excluir_cidade(cursor, conexao)
-                elif opcao == "5":
-                    break
-                else:
-                    print("Opção inválida. Tente novamente.")
-        elif escolha == "4":
-            print("Encerrando o programa.")
-            break
-        else:
-            print("Opção inválida. Tente novamente.")
-
-    cursor.close()
-    conexao.close()
-
-
-menu()
