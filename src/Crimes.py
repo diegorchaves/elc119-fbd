@@ -10,7 +10,7 @@ def conectar():
             user='root',
             password='lucas', #123456
             database='crimes',  #trabalho_fdb
-            port=3306  # Porta padrão do MariaDB, ajuste se necessário
+            port=3306  # Porta padrão do MariaDB
         )
         print("Conexão com o banco de dados realizada com sucesso!")
         return conexao
@@ -18,59 +18,49 @@ def conectar():
         print(f"Erro ao conectar ao banco de dados MariaDB: {e}")
         return None
 
-def listar_dados(cursor, tabela):
-    if tabela == "Crime":
-        query = """
-        SELECT 
-            c.IdCrime, 
-            t.Nome AS TipoCrime, 
-            ci.Nome AS Cidade, 
-            c.Mes, 
-            c.Ano,
-            IFNULL(cv.TotalVitimas, 'Não aplicável') AS TotalVitimas
-        FROM 
-            Crime c
-        JOIN 
-            TipoCrime t ON c.IdTipoCrime = t.IdTipoCrime
-        JOIN 
-            Cidade ci ON c.IdCidade = ci.IdCidade
-        LEFT JOIN 
-            CVLI cv ON c.IdCrime = cv.IdCrime
-        """
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        print("\n--- Lista de Crimes ---")
-        print(f"{'ID':<5} {'Tipo de Crime':<20} {'Cidade':<20} {'Mês':<5} {'Ano':<5} {'Vítimas':<15}")
-        print("-" * 80)
-        for linha in resultados:
-            print(f"{linha[0]:<5} {linha[1]:<20} {linha[2]:<20} {linha[3]:<5} {linha[4]:<5} {linha[5]:<15}")
-
-    elif tabela == "TipoCrime":
-        query = "SELECT IdTipoCrime, Nome, CVLI FROM TipoCrime"
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        print("\n--- Lista de Tipos de Crime ---")
-        print(f"{'ID':<5} {'Nome':<30} {'CVLI':<10}")
-        print("-" * 50)
-        for linha in resultados:
-            cvli_status = "Sim" if linha[2] else "Não"
-            print(f"{linha[0]:<5} {linha[1]:<30} {cvli_status:<10}")
-
-    elif tabela == "Cidade":
-        query = "SELECT IdCidade, Nome FROM Cidade"
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        print("\n--- Lista de Cidades ---")
-        print(f"{'ID':<5} {'Nome':<30}")
-        print("-" * 50)
-        for linha in resultados:
-            print(f"{linha[0]:<5} {linha[1]:<30}")
+def listar_dados(cursor, tabela_view):
+    """
+    Lista os registros da view fornecida com colunas alinhadas.
+    """
+    if tabela_view == "ViewCrime":
+        query = "SELECT IdCrime, TipoCrime, Cidade, Mes, Ano, TotalVitimas FROM ViewCrime"
+        headers = ["ID", "Tipo de Crime", "Cidade", "Mês", "Ano", "Vítimas"]
+    elif tabela_view == "ViewTipoCrime":
+        query = "SELECT IdTipoCrime, Nome, CVLI FROM ViewTipoCrime"
+        headers = ["ID", "Nome", "CVLI"]
+    elif tabela_view == "ViewCidade":
+        query = "SELECT IdCidade, Nome FROM ViewCidade"
+        headers = ["ID", "Nome"]
     else:
-        print("Tabela desconhecida.")
+        print("View desconhecida.")
         return
 
+    try:
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+
+        col_sizes = [max(len(str(item)) for item in col) for col in zip(*resultados, headers)]
+
+        header_line = " | ".join(f"{header:<{col_sizes[i]}}" for i, header in enumerate(headers))
+        print("\n" + header_line)
+        print("-" * len(header_line))
+
+        for linha in resultados:
+            print(" | ".join(f"{str(campo):<{col_sizes[i]}}" for i, campo in enumerate(linha)))
+
+    except mariadb.Error as e:
+        print(f"Erro ao listar dados da view {tabela_view}: {e}")
     pausar()
 
+
+def listar_crimes(cursor):
+    listar_dados(cursor, "ViewCrime")
+
+def listar_tipos_crime(cursor):
+    listar_dados(cursor, "ViewTipoCrime")
+
+def listar_cidades(cursor):
+    listar_dados(cursor, "ViewCidade")
 
 def log_alteracao(cursor, tabela, id_registro, tipo_operacao, descricao):
     query = f"""

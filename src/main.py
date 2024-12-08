@@ -1,13 +1,13 @@
 import mariadb
-from Crimes import listar_dados, criar_crime, alterar_crime, excluir_crime, criar_tipo_crime, alterar_tipo_crime, excluir_tipo_crime, criar_cidade, alterar_cidade, excluir_cidade
+from Crimes import listar_dados, criar_crime, alterar_crime, excluir_crime, criar_tipo_crime, alterar_tipo_crime, excluir_tipo_crime, criar_cidade, alterar_cidade, excluir_cidade, listar_crimes, listar_tipos_crime, listar_cidades
 
 def conectar_banco():
     try:
         conexao = mariadb.connect(
             host='localhost',
             user='root',
-            password='lucas',  # 123456
-            database='crimes',  # trabalho_fdb
+            password='123456',  # 123456
+            database='trabalho_fbd',  # trabalho_fdb
             port=3306
         )
         print("Conexão estabelecida com sucesso!")
@@ -27,15 +27,18 @@ def consultar_tabelas(cursor):
     opcao = input("Escolha uma opção: ")
 
     if opcao == "1":
-        listar_dados(cursor, "Crime")
+        listar_crimes(cursor)
     elif opcao == "2":
-        listar_dados(cursor, "TipoCrime")
+        listar_tipos_crime(cursor)
     elif opcao == "3":
-        listar_dados(cursor, "Cidade")
+        listar_cidades(cursor)
     else:
         print("Opção inválida. Tente novamente.")
 
 def consultar_logs(cursor):
+    """
+    Menu para consultar diferentes categorias de logs via views.
+    """
     print("\n--- Consultar Logs ---")
     print("1. Logs de Crimes")
     print("2. Logs de Tipos de Crimes")
@@ -43,19 +46,23 @@ def consultar_logs(cursor):
     opcao = input("Escolha uma opção: ")
 
     if opcao == "1":
-        listar_logs(cursor, "LogAlteracoesCrime")
+        listar_logs(cursor, "LogsCrimes")
     elif opcao == "2":
-        listar_logs(cursor, "LogAlteracoesTipoCrime")
+        listar_logs(cursor, "LogsTipoCrime")
     elif opcao == "3":
-        listar_logs(cursor, "LogAlteracoesCidade")
+        listar_logs(cursor, "LogsCidades")
     else:
         print("Opção inválida. Tente novamente.")
 
-def listar_logs(cursor, tabela):
-    query = f"SELECT IdLog, IdRegistro, TipoOperacao, DescricaoAlteracao, DataHora FROM {tabela}"
+
+def listar_logs(cursor, tabela_view):
+    """
+    Lista os registros da view de logs fornecida.
+    """
+    query = f"SELECT IdLog, IdRegistro, TipoOperacao, DescricaoAlteracao, DataHora FROM {tabela_view}"
     cursor.execute(query)
     resultados = cursor.fetchall()
-    print(f"\n--- Logs da Tabela {tabela} ---")
+    print(f"\n--- Logs da View {tabela_view} ---")
     print(f"{'ID Log':<10} {'ID Registro':<12} {'Operação':<10} {'Descrição':<50} {'Data/Hora':<20}")
     print("-" * 100)
     for linha in resultados:
