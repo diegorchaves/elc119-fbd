@@ -3,21 +3,6 @@ import mariadb
 def pausar():
     input("\nPressione Enter para continuar...")
 
-def conectar():
-    try:
-        conexao = mariadb.connect(
-            host='localhost',
-            user='root',
-            password='lucas', #123456
-            database='crimes',  #trabalho_fdb
-            port=3306  # Porta padrão do MariaDB
-        )
-        print("Conexão com o banco de dados realizada com sucesso!")
-        return conexao
-    except mariadb.Error as e:
-        print(f"Erro ao conectar ao banco de dados MariaDB: {e}")
-        return None
-
 def listar_dados(cursor, tabela_view):
     """
     Lista os registros da view fornecida com colunas alinhadas.

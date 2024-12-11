@@ -8,9 +8,6 @@ CVLI(*IdCVLI*, *IdCrime*, TotalVitimas)                 integer, integer, intege
     
 LogAlteracoes(*IdLog*, IdCrime, Alteracao, Data)	integer, integer, varchar, timestamp default current_timestamp
 
-teria que cadastrar todas as cidades, e todas as categorias de crime
-alimentar o banco de dados com algumas ocorrencias
-
 ---------------------------------------------------------
 CREATE TABLE TipoCrime (
 	IdTipoCrime INT AUTO_INCREMENT PRIMARY KEY,
