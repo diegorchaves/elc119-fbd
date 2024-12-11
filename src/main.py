@@ -60,12 +60,19 @@ def listar_logs(cursor, tabela_view):
     Lista os registros da view de logs fornecida.
     """
     query = f"SELECT IdLog, IdRegistro, TipoOperacao, DescricaoAlteracao, DataHora FROM {tabela_view}"
-    cursor.execute(query)
-    resultados = cursor.fetchall()
+    try:
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+    except mariadb.Error as e:
+        print(f"Erro ao executar a consulta: {e}")
+        return
     print(f"\n--- Logs da View {tabela_view} ---")
     print(f"{'ID Log':<10} {'ID Registro':<12} {'Operação':<10} {'Descrição':<50} {'Data/Hora':<20}")
     print("-" * 100)
     for linha in resultados:
+        if len(linha) < 5:
+            print(f"Erro: linha incompleta encontrada {linha}")
+            continue
         print(f"{linha[0]:<10} {linha[1]:<12} {linha[2]:<10} {linha[3]:<50} {linha[4]}")
     pausar()
 

@@ -62,14 +62,6 @@ def listar_tipos_crime(cursor):
 def listar_cidades(cursor):
     listar_dados(cursor, "ViewCidade")
 
-def log_alteracao(cursor, tabela, id_registro, tipo_operacao, descricao):
-    query = f"""
-    INSERT INTO LogAlteracoes{tabela} (IdRegistro, TipoOperacao, DescricaoAlteracao)
-    VALUES (?, ?, ?)
-    """
-    cursor.execute(query, (id_registro, tipo_operacao, descricao))
-
-
 def criar_crime(cursor, conexao):
     cursor.execute("SELECT IdTipoCrime, Nome, CVLI FROM TipoCrime")
     tipos_crime = cursor.fetchall()
@@ -95,21 +87,18 @@ def criar_crime(cursor, conexao):
         cursor.callproc('InsertCrimeCVLI', [id_tipo_crime, id_cidade, mes, ano, nro_vitimas])
         conexao.commit()
         print("Crime adicionado com sucesso!")
-        log_alteracao(cursor, "Crime", cursor.lastrowid, "INSERT", f"Crime criado com ID {cursor.lastrowid}")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao chamar o procedimento: {e}")
     
     pausar()
 
 def alterar_crime(cursor, conexao):
-    print("\n--- Crimes Disponíveis ---")
-    listar_dados(cursor, "Crime")
+    listar_crimes(cursor)
 
     id_crime = int(input("Digite o ID do crime a ser alterado: "))
 
     print("\n--- Cidades Disponíveis ---")
-    listar_dados(cursor, "Cidade")
+    listar_cidades(cursor)
 
     nova_cidade = int(input("Digite o novo ID da cidade: "))
 
@@ -124,21 +113,18 @@ def alterar_crime(cursor, conexao):
         cursor.execute(query, (nova_cidade, novo_mes, novo_ano, id_crime))
         conexao.commit()
         print("Crime alterado com sucesso!")
-        log_alteracao(cursor, "Crime", id_crime, "UPDATE", f"Crime com ID {id_crime} alterado")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar o crime: {e}")
     pausar()
 
 def excluir_crime(cursor, conexao):
+    listar_crimes(cursor)
     id_crime = int(input("Digite o ID do crime a ser excluído: "))
     query = "DELETE FROM Crime WHERE IdCrime = ?"
     try:
         cursor.execute(query, (id_crime))
         conexao.commit()
         print("Crime excluído com sucesso!")
-        log_alteracao(cursor, "Crime", id_crime, "DELETE", f"Crime com ID {id_crime} excluído")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao excluir o crime: {e}")
     pausar()
@@ -151,15 +137,13 @@ def criar_tipo_crime(cursor, conexao):
         cursor.execute(query, (nome_tipo_crime, cvli))
         conexao.commit()
         print("Tipo de crime adicionado com sucesso!")
-        log_alteracao(cursor, "TipoCrime", cursor.lastrowid, "INSERT", f"Tipo de crime criado com ID {cursor.lastrowid}")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao adicionar o tipo de crime: {e}")
     pausar()
 
 def alterar_tipo_crime(cursor, conexao):
     print("\n--- Tipos de Crimes Disponíveis ---")
-    listar_dados(cursor, "TipoCrime")
+    listar_tipos_crime(cursor)
 
     id_tipo_crime = int(input("Digite o ID do tipo de crime a ser alterado: "))
 
@@ -169,21 +153,18 @@ def alterar_tipo_crime(cursor, conexao):
         cursor.execute(query, (novo_nome, id_tipo_crime))
         conexao.commit()
         print("Tipo de crime alterado com sucesso!")
-        log_alteracao(cursor, "TipoCrime", id_tipo_crime, "UPDATE", f"Tipo de crime com ID {id_tipo_crime} alterado")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar o tipo de crime: {e}")
     pausar()
 
 def excluir_tipo_crime(cursor, conexao):
+    listar_tipos_crime(cursor)
     id_tipo_crime = int(input("Digite o ID do tipo de crime a ser excluído: "))
     query = "DELETE FROM TipoCrime WHERE IdTipoCrime = ?"
     try:
         cursor.execute(query, (id_tipo_crime,))
         conexao.commit()
         print("Tipo de crime excluído com sucesso!")
-        log_alteracao(cursor, "TipoCrime", id_tipo_crime, "DELETE", f"Tipo de crime com ID {id_tipo_crime} excluído")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao excluir o tipo de crime: {e}")
     pausar()
@@ -195,15 +176,12 @@ def criar_cidade(cursor, conexao):
         cursor.execute(query, (nome_cidade,))
         conexao.commit()
         print("Cidade adicionada com sucesso!")
-        log_alteracao(cursor, "Cidade", cursor.lastrowid, "INSERT", f"Cidade criada com ID {cursor.lastrowid}")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao adicionar a cidade: {e}")
     pausar()
 
 def alterar_cidade(cursor, conexao):
-    print("\n--- Cidades Disponíveis ---")
-    listar_dados(cursor, "Cidade")
+    listar_cidades(cursor)
 
     id_cidade = int(input("Digite o ID da cidade a ser alterada: "))
 
@@ -214,21 +192,18 @@ def alterar_cidade(cursor, conexao):
         cursor.execute(query, (novo_nome, id_cidade))
         conexao.commit()
         print("Cidade alterada com sucesso!")
-        log_alteracao(cursor, "Cidade", id_cidade, "UPDATE", f"Cidade com ID {id_cidade} alterada")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao alterar a cidade: {e}")
     pausar()
 
 def excluir_cidade(cursor, conexao):
+    listar_cidades(cursor)
     id_cidade = int(input("Digite o ID da cidade a ser excluída: "))
     query = "DELETE FROM Cidade WHERE IdCidade = ?"
     try:
         cursor.execute(query, (id_cidade,))
         conexao.commit()
         print("Cidade excluída com sucesso!")
-        log_alteracao(cursor, "Cidade", id_cidade, "DELETE", f"Cidade com ID {id_cidade} excluída")
-        conexao.commit()
     except mariadb.Error as e:
         print(f"Erro ao excluir a cidade: {e}")
     pausar()
